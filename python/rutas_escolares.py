@@ -14,10 +14,21 @@ OPCIONES:
 \t\tMuestra esta ayuda y termina.
 	""")
 
-class RuteoSolver:
-	def __init__(self, archivo_enunciado):
+class Ruta:
+	def __init__(self):
+		self.ruta = []
 		self.L = 0 # Distancia recorrida
 		self.T = 0 # Tiempo de llegada del bus
+
+	def __str__(self):
+		return "Ruta:{" + \
+		"\n\t\t\"L\":" + str(self.L) + "," + \
+		"\n\t\t\"T\":" + str(self.T) + "," + \
+		"\n\t\t\"ruta\":" + str(self.ruta) + "," + \
+		"\n}"
+
+class RuteoSolver:
+	def __init__(self, archivo_enunciado):
 		self.Q = config.capacidad_buses # Capacidad de los buses
 		self.coordenada_salida_buses = config.coordenada_salida_buses
 		self.coordenadas_ninos = config.coordenadas_ninos
@@ -36,11 +47,11 @@ class RuteoSolver:
 		self.distancias = self.__leer_matriz(config.archivo_matriz_distancias)
 		self.costos = self.__leer_matriz(config.archivo_matriz_costos)
 		self.tiempos = self.__leer_matriz(config.archivo_matriz_tiempos)
+		self.solucion = self.__solve(self.grupos_ninos)
 
 	def __str__(self):
+		soluciones = [ str(ruta) for ruta in self.solucion ]
 		return "RuteoSolver:{" + \
-		"\n\t\"L\":" + str(self.L) + "," + \
-		"\n\t\"T\":" + str(self.T) + "," + \
 		"\n\t\"Q\":" + str(self.Q) + "," + \
 		"\n\t\"N\":" + str(self.N) + "," + \
 		"\n\t\"NB\":" + str(self.NB) + "," + \
@@ -50,6 +61,7 @@ class RuteoSolver:
 		"\n\t\"distancias\":" + str(self.distancias) + "," + \
 		"\n\t\"costos\":" + str(self.costos) + "," + \
 		"\n\t\"tiempos\":" + str(self.tiempos) + "," + \
+		"\n\t\"solucion\":[\n\t" + "\n\t".join(soluciones) + "]" + \
 		"\n}"
 
 	def __crear_grupos(self, coordenadas, tamanio_grupos):
@@ -75,6 +87,12 @@ class RuteoSolver:
 			for indice_columna in range(0, len(lineas[indice_fila])):
 				lineas[indice_fila][indice_columna] = float(lineas[indice_fila][indice_columna])
 		return lineas
+
+	def __solve(self, grupos_ninos):
+		rutas = []
+		for grupo in grupos_ninos:
+			rutas.append( Ruta() )
+		return rutas
 
 if __name__ == '__main__':
 
