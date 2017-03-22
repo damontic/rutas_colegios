@@ -33,6 +33,9 @@ class RuteoSolver:
 
 		self.NB = math.ceil(self.N / self.Q) # Buses Objetivo
 		self.grupos_ninos = self.__crear_grupos(self.coordenadas_ninos, math.ceil( self.N / self.NB ))
+		self.distancias = self.__leer_matriz(config.archivo_matriz_distancias)
+		self.costos = self.__leer_matriz(config.archivo_matriz_costos)
+		self.tiempos = self.__leer_matriz(config.archivo_matriz_tiempos)
 
 	def __str__(self):
 		return "RuteoSolver:{" + \
@@ -44,6 +47,9 @@ class RuteoSolver:
 		"\n\t\"coordenada_salida_buses\":" + str(self.coordenada_salida_buses) + "," + \
 		"\n\t\"coordenadas_ninos\":" + str(self.coordenadas_ninos) + "," + \
 		"\n\t\"grupos_ninos\":" + str(self.grupos_ninos) + "," + \
+		"\n\t\"distancias\":" + str(self.distancias) + "," + \
+		"\n\t\"costos\":" + str(self.costos) + "," + \
+		"\n\t\"tiempos\":" + str(self.tiempos) + "," + \
 		"\n}"
 
 	def __crear_grupos(self, coordenadas, tamanio_grupos):
@@ -59,6 +65,16 @@ class RuteoSolver:
 
 	def __desviacion_estandard(self, lista):
 		return math.sqrt(self.__varianza(lista))
+
+	def __leer_matriz(self, archivo):
+		f = open(archivo, "r")
+		lineas = f.readlines()
+		f.close()
+		lineas = [ linea.replace("\n", "").split("\t") for linea in lineas ]
+		for indice_fila in range(0, len(lineas)):
+			for indice_columna in range(0, len(lineas[indice_fila])):
+				lineas[indice_fila][indice_columna] = float(lineas[indice_fila][indice_columna])
+		return lineas
 
 if __name__ == '__main__':
 

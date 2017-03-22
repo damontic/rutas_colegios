@@ -1,4 +1,3 @@
-cantidad_ninos=10
 capacidad_buses=10
 coordenada_salida_buses=(0,2)
 coordenadas_ninos=[ \
@@ -17,3 +16,6 @@ coordenadas_ninos=[ \
 ]
 coordenada_autopisa_norte=(45,10)
 coordenada_colegio_destino=(49, 7)
+archivo_matriz_distancias="distancias.txt"
+archivo_matriz_costos="costos.txt"
+archivo_matriz_tiempos="tiempos.txt"
