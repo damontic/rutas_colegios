@@ -26,6 +26,7 @@ class Ruta:
 		self.L = 0 # Distancia recorrida
 		self.T = 0 # Tiempo de llegada del bus
 		self.nodo_actual = nodo_inicial
+		self.tiempo_llegada_autopista = None
 
 	def __str__(self):
 		return "Ruta:{" + \
@@ -33,6 +34,7 @@ class Ruta:
 		"\n\t\t\"T\":" + str(self.T) + "," + \
 		"\n\t\t\"ruta\":" + str(self.ruta) + "," + \
 		"\n\t\t\"nodo_actual\":" + str(self.nodo_actual) + "," + \
+		"\n\t\t\"tiempo_llegada_autopista\":" + str(self.tiempo_llegada_autopista) + "," + \
 		"\n}"
 
 	def recoger_nino(self, nodo_nino, tiempos, tiempos_recogida):
@@ -42,10 +44,11 @@ class Ruta:
 		self.nodo_actual = nodo_nino
 
 	def terminar_recorrido(self, nodo_autopista, nodo_colegio, tiempos, tiempos_recogida):
+		self.tiempo_llegada_autopista = self.T
 		self.T = self.T + tiempos[self.nodo_actual][nodo_autopista] + tiempos_recogida[nodo_autopista]
 		self.ruta.append(nodo_autopista)
 		self.nodo_actual = nodo_autopista
-		
+
 		self.T = self.T + tiempos[self.nodo_actual][nodo_colegio] + tiempos_recogida[nodo_colegio]
 		self.ruta.append(nodo_colegio)
 		self.nodo_actual = nodo_colegio
@@ -56,6 +59,7 @@ class RuteoSolver:
 		indice_instancia = numero_instancia + 1
 		self.N = int(f.read("C"+str(indice_instancia))) # Cantidad de niños
 		self.Q = int(f.read("N"+str(indice_instancia))) # Capacidad de los buses
+		self.R = int(f.read("K"+str(indice_instancia))) # Capacidad de los buse
 
 		if(self.N <= 0):
 			print("La cantidad de niños debe ser mayor a 0.")
@@ -101,6 +105,7 @@ class RuteoSolver:
 		"\n\t\"Q\":" + str(self.Q) + "," + \
 		"\n\t\"N\":" + str(self.N) + "," + \
 		"\n\t\"NB\":" + str(self.NB) + "," + \
+		"\n\t\"R\":" + str(self.R) + "," + \
 		"\n\t\"nodo_salida_buses\":" + str(self.nodo_salida_buses) + "," + \
 		"\n\t\"nodo_autopista\":" + str(self.nodo_autopista) + "," + \
 		"\n\t\"nodo_colegio\":" + str(self.nodo_colegio) + "," + \
