@@ -52,23 +52,27 @@ class RuteoSolver:
 		self.NB = math.ceil(self.N / self.Q) # Buses Objetivo
 
 		indice_nodo_colegio = int(f.read("J"+str(indice_instancia))) + 5
-		indice_inicio_ninos = int(f.read("E"+str(indice_instancia))) + 6
+		cantidad_buses = int(f.read("E"+str(indice_instancia)))
+		indice_inicio_ninos_hoja_2 = cantidad_buses + 6
+		indice_inicio_matrices_fila = cantidad_buses + 3
+		indice_inicio_matrices_columna = cantidad_buses + 2
 
 		f = excel.OpenExcel(archivo_excel, sheet = 2)
 		self.coordenada_salida_buses = ( int(f.read("B6")), int(f.read("C6")))
 		self.coordenadas_ninos = []
-		for i in range(indice_inicio_ninos, indice_inicio_ninos+self.N):
+		for i in range(indice_inicio_ninos_hoja_2, indice_inicio_ninos_hoja_2 + self.N):
 			self.coordenadas_ninos.append( ( int(f.read("B"+str(i))), int(f.read("C"+str(i))) ) ) 
 		i = i + 1
 		self.coordenada_autopista = ( int(f.read("B"+str(i))), int(f.read("C"+str(i))))
 		i = i + 1
 		self.coordenada_colegio = ( int(f.read("B"+str(i))), int(f.read("C"+str(i))))
 
-#		self.grupos_ninos = self.__crear_grupos(self.coordenadas_ninos, math.ceil( self.N / self.NB ))
-#		self.distancias = self.__leer_matriz(config.archivo_matriz_distancias)
-#		self.costos = self.__leer_matriz(config.archivo_matriz_costos)
-#		self.tiempos = self.__leer_matriz(config.archivo_matriz_tiempos)
+		self.grupos_ninos = self.__crear_grupos(self.coordenadas_ninos, math.ceil( self.N / self.NB ))
+		self.distancias = self.__leer_matriz(archivo_excel, 3, indice_inicio_matrices_fila, indice_inicio_matrices_columna, self.N)
+		self.costos = self.__leer_matriz(archivo_excel, 4, indice_inicio_matrices_fila, indice_inicio_matrices_columna, self.N)
+		self.tiempos = self.__leer_matriz(archivo_excel, 5, indice_inicio_matrices_fila, indice_inicio_matrices_columna, self.N)
 #		self.solucion = self.__solve(self.grupos_ninos, self.coordenada_salida_buses)
+		self.solucion = []
 
 	def __str__(self):
 		soluciones = [ str(ruta) for ruta in self.solucion ]
@@ -89,25 +93,28 @@ class RuteoSolver:
 		coordenadas = sorted(coordenadas, key=lambda x: x[1])
 		return [ coordenadas[i:i + tamanio_grupos] for i in range(0, len(coordenadas), tamanio_grupos) ]
 
-	def __promedio(self, lista):
-		return sum(lista) / len(lista)
+	def __colnum_string(self, n):
+		div=n
+		string=""
+		temp=0
+		while div>0:
+			module=(div-1)%26
+			string=chr(65+module)+string
+			div=int((div-module)/26)
+		return string
 
-	def __varianza(self, lista):
-		promedio = self.__promedio(lista)
-		return sum([ math.pow(elem - promedio, 2) for elem in lista ]) / (len(lista))
 
-	def __desviacion_estandard(self, lista):
-		return math.sqrt(self.__varianza(lista))
-
-	def __leer_matriz(self, archivo):
-		f = open(archivo, "r")
-		lineas = f.readlines()
-		f.close()
-		lineas = [ linea.replace("\n", "").split("\t") for linea in lineas ]
-		for indice_fila in range(0, len(lineas)):
-			for indice_columna in range(0, len(lineas[indice_fila])):
-				lineas[indice_fila][indice_columna] = float(lineas[indice_fila][indice_columna])
-		return lineas
+	def __leer_matriz(self, archivo_excel, numero_hoja, indice_inicio_matrices_fila, indice_inicio_matrices_columna, cantidad_ninos):
+		f = excel.OpenExcel(archivo_excel, numero_hoja)
+		matriz = []
+		for i in range(indice_inicio_matrices_fila, indice_inicio_matrices_fila + cantidad_ninos + 2):
+			fila = []
+			for j in range(indice_inicio_matrices_columna, indice_inicio_matrices_columna + cantidad_ninos + 2):
+				cell_name = self.__colnum_string(j)+str(i)
+				print(cell_name)
+				fila.append( float( f.read(cell_name).replace(",",".") ) )
+			matriz.append(fila)
+		return matriz
 
 	def __solve(self, grupos_ninos, coordenada_salida_buses):
 		rutas = []
@@ -152,3 +159,4 @@ if __name__ == '__main__':
 		sys.exit(1)
 
 	ruteoSolver = RuteoSolver(archivo_excel, instancia)
+	print(ruteoSolver)
