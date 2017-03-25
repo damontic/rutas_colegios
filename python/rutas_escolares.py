@@ -25,14 +25,18 @@ class Ruta:
 		self.ruta = []
 		self.L = 0 # Distancia recorrida
 		self.T = 0 # Tiempo de llegada del bus
-		self.coordenada_salida = coordenada_salida
+		self.coordenada_actual = coordenada_salida
 
 	def __str__(self):
 		return "Ruta:{" + \
 		"\n\t\t\"L\":" + str(self.L) + "," + \
 		"\n\t\t\"T\":" + str(self.T) + "," + \
 		"\n\t\t\"ruta\":" + str(self.ruta) + "," + \
+		"\n\t\t\"coordenada_actual\":" + str(self.coordenada_actual) + "," + \
 		"\n}"
+
+	def __recoger_nino(self, coordenada_nino):
+		pass
 
 class RuteoSolver:
 	def __init__(self, archivo_excel, numero_instancia):
@@ -71,8 +75,14 @@ class RuteoSolver:
 		self.distancias = self.__leer_matriz(archivo_excel, 3, indice_inicio_matrices_fila, indice_inicio_matrices_columna, self.N)
 		self.costos = self.__leer_matriz(archivo_excel, 4, indice_inicio_matrices_fila, indice_inicio_matrices_columna, self.N)
 		self.tiempos = self.__leer_matriz(archivo_excel, 5, indice_inicio_matrices_fila, indice_inicio_matrices_columna, self.N)
-#		self.solucion = self.__solve(self.grupos_ninos, self.coordenada_salida_buses)
-		self.solucion = []
+
+		f = excel.OpenExcel(archivo_excel, sheet = 6)
+		self.tiempos_recogida = []
+		for i in range(indice_inicio_matrices_fila, indice_inicio_matrices_fila + self.N + 2):
+			tiempo = int(f.read("B"+str(i)))
+			self.tiempos_recogida.append(tiempo)
+		
+		self.solucion = self.__solve(self.grupos_ninos, self.coordenada_salida_buses)
 
 	def __str__(self):
 		soluciones = [ str(ruta) for ruta in self.solucion ]
@@ -86,6 +96,7 @@ class RuteoSolver:
 		"\n\t\"distancias\":" + str(self.distancias) + "," + \
 		"\n\t\"costos\":" + str(self.costos) + "," + \
 		"\n\t\"tiempos\":" + str(self.tiempos) + "," + \
+		"\n\t\"tiempos_recogida\":" + str(self.tiempos_recogida) + "," + \
 		"\n\t\"solucion\":[\n\t" + "\n\t".join(soluciones) + "]" + \
 		"\n}"
 
@@ -111,19 +122,20 @@ class RuteoSolver:
 			fila = []
 			for j in range(indice_inicio_matrices_columna, indice_inicio_matrices_columna + cantidad_ninos + 2):
 				cell_name = self.__colnum_string(j)+str(i)
-				print(cell_name)
-				fila.append( float( f.read(cell_name).replace(",",".") ) )
+				fila.append( int( f.read(cell_name).split(",")[0] ) )
 			matriz.append(fila)
 		return matriz
 
 	def __solve(self, grupos_ninos, coordenada_salida_buses):
 		rutas = []
 		for grupo in grupos_ninos:
-			ruta = Ruta(coordenada_salida_buses)
-			for nino in grupo:
-				print("comparando " + str(nino) + " con ruta " + str(coordenada_salida_buses))
-			rutas.append( ruta )
+			ruta = self.__encontrar_ruta(grupo, coordenada_salida_buses)
+			rutas.append(ruta)
 		return rutas
+
+	def __encontrar_ruta(self, grupo_ninos, coordenada_salida_bus):
+		ruta = Ruta(coordenada_salida_bus)
+		return ruta
 
 if __name__ == '__main__':
 
