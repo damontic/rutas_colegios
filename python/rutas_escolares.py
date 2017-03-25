@@ -21,21 +21,21 @@ OPCIONES:
 	""")
 
 class Ruta:
-	def __init__(self, coordenada_salida):
+	def __init__(self, nodo_inicial):
 		self.ruta = []
 		self.L = 0 # Distancia recorrida
 		self.T = 0 # Tiempo de llegada del bus
-		self.coordenada_actual = coordenada_salida
+		self.nodo_actual = nodo_inicial
 
 	def __str__(self):
 		return "Ruta:{" + \
 		"\n\t\t\"L\":" + str(self.L) + "," + \
 		"\n\t\t\"T\":" + str(self.T) + "," + \
 		"\n\t\t\"ruta\":" + str(self.ruta) + "," + \
-		"\n\t\t\"coordenada_actual\":" + str(self.coordenada_actual) + "," + \
+		"\n\t\t\"nodo_actual\":" + str(self.nodo_actual) + "," + \
 		"\n}"
 
-	def __recoger_nino(self, coordenada_nino):
+	def recoger_nino(self, nodo_nino):
 		pass
 
 class RuteoSolver:
@@ -55,26 +55,25 @@ class RuteoSolver:
 
 		self.NB = math.ceil(self.N / self.Q) # Buses Objetivo
 
-		indice_nodo_colegio = int(f.read("J"+str(indice_instancia))) + 5
 		cantidad_buses = int(f.read("E"+str(indice_instancia)))
 		indice_inicio_ninos_hoja_2 = cantidad_buses + 6
 		indice_inicio_matrices_fila = cantidad_buses + 3
 		indice_inicio_matrices_columna = cantidad_buses + 2
 
 		f = excel.OpenExcel(archivo_excel, sheet = 2)
-		self.coordenada_salida_buses = ( int(f.read("B6")), int(f.read("C6")))
-		self.coordenadas_ninos = []
+		self.nodo_salida_buses = int(f.read("A6"))
+		datos_ninos = []
 		for i in range(indice_inicio_ninos_hoja_2, indice_inicio_ninos_hoja_2 + self.N):
-			self.coordenadas_ninos.append( ( int(f.read("B"+str(i))), int(f.read("C"+str(i))) ) ) 
+			datos_ninos.append( ( int(f.read("A"+str(i))), int(f.read("B"+str(i))), int(f.read("C"+str(i))) ) ) 
 		i = i + 1
-		self.coordenada_autopista = ( int(f.read("B"+str(i))), int(f.read("C"+str(i))))
+		self.nodo_autopista = int(f.read("A"+str(i)))
 		i = i + 1
-		self.coordenada_colegio = ( int(f.read("B"+str(i))), int(f.read("C"+str(i))))
+		self.nodo_colegio = int(f.read("A"+str(i)))
 
-		self.grupos_ninos = self.__crear_grupos(self.coordenadas_ninos, math.ceil( self.N / self.NB ))
-		self.distancias = self.__leer_matriz(archivo_excel, 3, indice_inicio_matrices_fila, indice_inicio_matrices_columna, self.N)
-		self.costos = self.__leer_matriz(archivo_excel, 4, indice_inicio_matrices_fila, indice_inicio_matrices_columna, self.N)
-		self.tiempos = self.__leer_matriz(archivo_excel, 5, indice_inicio_matrices_fila, indice_inicio_matrices_columna, self.N)
+		self.grupos_ninos = self.__crear_grupos(datos_ninos, math.ceil( self.N / self.NB ))
+		self.distancias = self.__leer_matriz(archivo_excel, 3, self.N, cantidad_buses)
+		self.costos = self.__leer_matriz(archivo_excel, 4, self.N, cantidad_buses)
+		self.tiempos = self.__leer_matriz(archivo_excel, 5, self.N, cantidad_buses)
 
 		f = excel.OpenExcel(archivo_excel, sheet = 6)
 		self.tiempos_recogida = []
@@ -82,7 +81,7 @@ class RuteoSolver:
 			tiempo = int(f.read("B"+str(i)))
 			self.tiempos_recogida.append(tiempo)
 		
-		self.solucion = self.__solve(self.grupos_ninos, self.coordenada_salida_buses)
+		self.solucion = self.__solve(self.grupos_ninos, self.nodo_salida_buses, self.distancias)
 
 	def __str__(self):
 		soluciones = [ str(ruta) for ruta in self.solucion ]
@@ -90,8 +89,9 @@ class RuteoSolver:
 		"\n\t\"Q\":" + str(self.Q) + "," + \
 		"\n\t\"N\":" + str(self.N) + "," + \
 		"\n\t\"NB\":" + str(self.NB) + "," + \
-		"\n\t\"coordenada_salida_buses\":" + str(self.coordenada_salida_buses) + "," + \
-		"\n\t\"coordenadas_ninos\":" + str(self.coordenadas_ninos) + "," + \
+		"\n\t\"nodo_salida_buses\":" + str(self.nodo_salida_buses) + "," + \
+		"\n\t\"nodo_autopista\":" + str(self.nodo_autopista) + "," + \
+		"\n\t\"nodo_colegio\":" + str(self.nodo_colegio) + "," + \
 		"\n\t\"grupos_ninos\":" + str(self.grupos_ninos) + "," + \
 		"\n\t\"distancias\":" + str(self.distancias) + "," + \
 		"\n\t\"costos\":" + str(self.costos) + "," + \
@@ -100,9 +100,9 @@ class RuteoSolver:
 		"\n\t\"solucion\":[\n\t" + "\n\t".join(soluciones) + "]" + \
 		"\n}"
 
-	def __crear_grupos(self, coordenadas, tamanio_grupos):
-		coordenadas = sorted(coordenadas, key=lambda x: x[1])
-		return [ coordenadas[i:i + tamanio_grupos] for i in range(0, len(coordenadas), tamanio_grupos) ]
+	def __crear_grupos(self, datos_ninos, tamanio_grupos):
+		datos_ninos = [ dato_nino[0] for dato_nino in sorted(datos_ninos, key=lambda x: x[2]) ]
+		return [ datos_ninos[i:i + tamanio_grupos] for i in range(0, len(datos_ninos), tamanio_grupos) ]
 
 	def __colnum_string(self, n):
 		div=n
@@ -115,27 +115,40 @@ class RuteoSolver:
 		return string
 
 
-	def __leer_matriz(self, archivo_excel, numero_hoja, indice_inicio_matrices_fila, indice_inicio_matrices_columna, cantidad_ninos):
+	def __leer_matriz(self, archivo_excel, numero_hoja, cantidad_ninos, cantidad_buses):
 		f = excel.OpenExcel(archivo_excel, numero_hoja)
 		matriz = []
-		for i in range(indice_inicio_matrices_fila, indice_inicio_matrices_fila + cantidad_ninos + 2):
+		for i in range(3, 3 + cantidad_ninos + cantidad_buses + 2):
 			fila = []
-			for j in range(indice_inicio_matrices_columna, indice_inicio_matrices_columna + cantidad_ninos + 2):
-				cell_name = self.__colnum_string(j)+str(i)
+			for j in range(2, 2 + cantidad_ninos + cantidad_buses + 2):
+				cell_name = self.__colnum_string(j) + str(i)
 				fila.append( int( f.read(cell_name).split(",")[0] ) )
 			matriz.append(fila)
 		return matriz
 
-	def __solve(self, grupos_ninos, coordenada_salida_buses):
+	def __solve(self, grupos_ninos, coordenada_salida_buses, distancias):
 		rutas = []
 		for grupo in grupos_ninos:
-			ruta = self.__encontrar_ruta(grupo, coordenada_salida_buses)
+			ruta = self.__encontrar_ruta(grupo, coordenada_salida_buses, distancias)
 			rutas.append(ruta)
 		return rutas
 
-	def __encontrar_ruta(self, grupo_ninos, coordenada_salida_bus):
+	def __encontrar_ruta(self, grupo_ninos, coordenada_salida_bus, distancias):
 		ruta = Ruta(coordenada_salida_bus)
+#		while(len(grupo_ninos) > 0):
+#			nino_a_recoger = self.__encontrar_siguiente_nino_a_recoger(ruta.coordenada_actual, grupo_ninos, distancias)
+#			ruta.recoger_nino(nino_a_recoger)
+#			grupo_ninos.remove(nino_a_recoger)
 		return ruta
+
+	def __encontrar_siguiente_nino_a_recoger(self, coordenada_ruta, grupo_ninos, distancias):
+#		a_recoger = grupo_ninos[0]
+#		distancia_a_nino_a_recoger = distancias[][]
+#		for nino in grupo_ninos[1:]:
+#			if():
+#				a_recoger = nino
+#		return a_recoger
+		pass
 
 if __name__ == '__main__':
 
