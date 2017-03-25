@@ -41,6 +41,15 @@ class Ruta:
 		self.ruta.append(nodo_nino)
 		self.nodo_actual = nodo_nino
 
+	def terminar_recorrido(self, nodo_autopista, nodo_colegio, tiempos, tiempos_recogida):
+		self.T = self.T + tiempos[self.nodo_actual][nodo_autopista] + tiempos_recogida[nodo_autopista]
+		self.ruta.append(nodo_autopista)
+		self.nodo_actual = nodo_autopista
+		
+		self.T = self.T + tiempos[self.nodo_actual][nodo_colegio] + tiempos_recogida[nodo_colegio]
+		self.ruta.append(nodo_colegio)
+		self.nodo_actual = nodo_colegio
+
 class RuteoSolver:
 	def __init__(self, archivo_excel, numero_instancia):
 		f = excel.OpenExcel(archivo_excel)
@@ -77,12 +86,14 @@ class RuteoSolver:
 		self.tiempos = self.__leer_matriz(archivo_excel, 5, self.N, cantidad_buses)
 
 		f = excel.OpenExcel(archivo_excel, sheet = 6)
-		self.tiempos_recogida = []
+		self.tiempos_recogida = [None]
 		for i in range(3, 3 + cantidad_buses + self.N + 2):
 			tiempo = int(f.read("B"+str(i)))
 			self.tiempos_recogida.append(tiempo)
+
+		self.ventana = (150, 210)
 		
-		self.solucion = self.__solve(self.grupos_ninos, self.nodo_salida_buses, self.distancias, self.tiempos, self.tiempos_recogida)
+		self.solucion = self.__solve(self.grupos_ninos, self.nodo_salida_buses, self.nodo_autopista, self.nodo_colegio, self.distancias, self.tiempos, self.tiempos_recogida)
 
 	def __str__(self):
 		soluciones = [ str(ruta) for ruta in self.solucion ]
@@ -118,28 +129,29 @@ class RuteoSolver:
 
 	def __leer_matriz(self, archivo_excel, numero_hoja, cantidad_ninos, cantidad_buses):
 		f = excel.OpenExcel(archivo_excel, numero_hoja)
-		matriz = []
+		matriz = [ [ None for i in range(0, cantidad_buses + cantidad_ninos + 2)] ]
 		for i in range(3, 3 + cantidad_ninos + cantidad_buses + 2):
-			fila = []
+			fila = [ None ]
 			for j in range(2, 2 + cantidad_ninos + cantidad_buses + 2):
 				cell_name = self.__colnum_string(j) + str(i)
 				fila.append( int( f.read(cell_name).split(",")[0] ) )
 			matriz.append(fila)
 		return matriz
 
-	def __solve(self, grupos_ninos, nodo_salida_buses, distancias, tiempos, tiempos_recogida):
+	def __solve(self, grupos_ninos, nodo_salida_buses, nodo_autopista, nodo_colegio, distancias, tiempos, tiempos_recogida):
 		rutas = []
 		for grupo in grupos_ninos:
-			ruta = self.__encontrar_ruta(grupo, nodo_salida_buses, distancias, tiempos, tiempos_recogida)
+			ruta = self.__encontrar_ruta(grupo, nodo_salida_buses, nodo_autopista, nodo_colegio, distancias, tiempos, tiempos_recogida)
 			rutas.append(ruta)
 		return rutas
 
-	def __encontrar_ruta(self, grupo_ninos, nodo_salida_bus, distancias, tiempos, tiempos_recogida):
+	def __encontrar_ruta(self, grupo_ninos, nodo_salida_bus, nodo_autopista, nodo_colegio, distancias, tiempos, tiempos_recogida):
 		ruta = Ruta(nodo_salida_bus)
 		while(len(grupo_ninos) > 0):
 			nino_a_recoger = self.__encontrar_siguiente_nino_a_recoger(ruta.nodo_actual, grupo_ninos, distancias)
 			ruta.recoger_nino(nino_a_recoger, tiempos, tiempos_recogida)
 			grupo_ninos.remove(nino_a_recoger)
+		ruta.terminar_recorrido(nodo_autopista, nodo_colegio, tiempos, tiempos_recogida)
 		return ruta
 
 	def __encontrar_siguiente_nino_a_recoger(self, nodo_ruta, grupo_ninos, distancias):
