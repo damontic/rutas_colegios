@@ -35,34 +35,40 @@ class Ruta:
 		"\n}"
 
 class RuteoSolver:
-	def __init__(self, archivo_excel):
+	def __init__(self, archivo_excel, numero_instancia):
 		f = excel.OpenExcel(archivo_excel)
-		self.N = int(f.read("C2")) # Cantidad de niños
-		self.Q = int(f.read("N2")) # Capacidad de los buses
-		indice_nodo_colegio = int(f.read("J2")) + 5
-		indice_inicio_ninos = int(f.read("E2")) + 6
+		indice_instancia = numero_instancia + 1
+		self.N = int(f.read("C"+str(indice_instancia))) # Cantidad de niños
+		self.Q = int(f.read("N"+str(indice_instancia))) # Capacidad de los buses
 
-		f = excel.OpenExcel(archivo_excel, sheet = 3)
-		self.coordenada_salida_buses_X = f.read("B" + str(indice_nodo_colegio))
-		self.coordenada_salida_buses_Y = f.read("C" + str(indice_nodo_colegio))
-#		self.coordenadas_ninos = config.coordenadas_ninos
-#
-#		if(self.N <= 0):
-#			print("La cantidad de niños debe ser mayor a 0.")
-#			sys.exit(1)
-#
-#		if(self.Q <= 0):
-#			print("La capacidad de los buses debe ser mayor a 0.")
-#			sys.exit(1)
-#
-#		self.NB = math.ceil(self.N / self.Q) # Buses Objetivo
+		if(self.N <= 0):
+			print("La cantidad de niños debe ser mayor a 0.")
+			sys.exit(1)
+
+		if(self.Q <= 0):
+			print("La capacidad de los buses debe ser mayor a 0.")
+			sys.exit(1)
+
+		self.NB = math.ceil(self.N / self.Q) # Buses Objetivo
+
+		indice_nodo_colegio = int(f.read("J"+str(indice_instancia))) + 5
+		indice_inicio_ninos = int(f.read("E"+str(indice_instancia))) + 6
+
+		f = excel.OpenExcel(archivo_excel, sheet = 2)
+		self.coordenada_salida_buses = ( int(f.read("B6")), int(f.read("C6")))
+		self.coordenadas_ninos = []
+		for i in range(indice_inicio_ninos, indice_inicio_ninos+self.N):
+			self.coordenadas_ninos.append( ( int(f.read("B"+str(i))), int(f.read("C"+str(i))) ) ) 
+		i = i + 1
+		self.coordenada_autopista = ( int(f.read("B"+str(i))), int(f.read("C"+str(i))))
+		i = i + 1
+		self.coordenada_colegio = ( int(f.read("B"+str(i))), int(f.read("C"+str(i))))
+
 #		self.grupos_ninos = self.__crear_grupos(self.coordenadas_ninos, math.ceil( self.N / self.NB ))
 #		self.distancias = self.__leer_matriz(config.archivo_matriz_distancias)
 #		self.costos = self.__leer_matriz(config.archivo_matriz_costos)
 #		self.tiempos = self.__leer_matriz(config.archivo_matriz_tiempos)
 #		self.solucion = self.__solve(self.grupos_ninos, self.coordenada_salida_buses)
-
-		print(self.N, self.Q, indice_nodo_colegio, indice_inicio_ninos)
 
 	def __str__(self):
 		soluciones = [ str(ruta) for ruta in self.solucion ]
@@ -124,21 +130,25 @@ if __name__ == '__main__':
 		sys.exit(2)
 
 	# Define las variables necesarias
-	excel = None
+	archivo_excel = None
 	instancia = None
 	for option, value in opts:
 		if option in ("-h", "--help"):
 			uso()
 			sys.exit(1)
-		if option in ("-e", "--excel-file"):
-			excel = value
-		if option in ("-i", "--instancia"):
-			instancia = value
+		elif option in ("-e", "--excel-file"):
+			archivo_excel = value
+		elif option in ("-i", "--instancia"):
+			try:
+				instancia = int(value)
+			except:
+				print("El argumento que sigue a -i debe ser numérico.")
+				sys.exit(1)
 		else:
 			assert False, "unhandled option"
 
-	if(excel_file == None or instancia == None):
+	if(archivo_excel == None or instancia == None):
 		uso()
 		sys.exit(1)
 
-	ruteoSolver = RuteoSolver(excel, instancia)
+	ruteoSolver = RuteoSolver(archivo_excel, instancia)
