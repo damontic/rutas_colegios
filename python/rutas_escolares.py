@@ -2,6 +2,7 @@ import getopt
 import math
 import sys
 import excel
+import json
 
 def uso():
 	print("""
@@ -20,7 +21,7 @@ OPCIONES:
 \t\tMuestra esta ayuda y termina.
 	""")
 
-class Ruta:
+class Ruta():
 	def __init__(self, nodo_inicial):
 		self.ruta = [nodo_inicial]
 		self.L = 0 # Distancia recorrida
@@ -29,13 +30,7 @@ class Ruta:
 		self.tiempo_llegada_autopista = None
 
 	def __str__(self):
-		return "Ruta:{" + \
-		"\n\t\t\"L\":" + str(self.L) + "," + \
-		"\n\t\t\"T\":" + str(self.T) + "," + \
-		"\n\t\t\"ruta\":" + str(self.ruta) + "," + \
-		"\n\t\t\"nodo_actual\":" + str(self.nodo_actual) + "," + \
-		"\n\t\t\"tiempo_llegada_autopista\":" + str(self.tiempo_llegada_autopista) + "," + \
-		"\n}"
+		return json.dumps(self.toJSON())
 
 	def recoger_nino(self, nodo_nino, tiempos, tiempos_recogida):
 		self.L = self.L + 1
@@ -53,13 +48,16 @@ class Ruta:
 		self.ruta.append(nodo_colegio)
 		self.nodo_actual = nodo_colegio
 
-class RuteoSolver:
+	def toJSON(self):
+		return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
+
+class RuteoSolver():
 	def __init__(self, archivo_excel, numero_instancia):
 		f = excel.OpenExcel(archivo_excel)
 		indice_instancia = numero_instancia + 1
 		self.N = int(f.read("C"+str(indice_instancia))) # Cantidad de niños
 		self.Q = int(f.read("N"+str(indice_instancia))) # Capacidad de los buses
-		self.R = int(f.read("K"+str(indice_instancia))) # Capacidad de los buse
+		self.R = int(f.read("K"+str(indice_instancia))) # Capacidad de los buses
 
 		if(self.N <= 0):
 			print("La cantidad de niños debe ser mayor a 0.")
@@ -99,23 +97,7 @@ class RuteoSolver:
 		
 		self.solucion = self.__solve(self.grupos_ninos, self.nodo_salida_buses, self.nodo_autopista, self.nodo_colegio, self.distancias, self.tiempos, self.tiempos_recogida)
 
-	def __str__(self):
-		soluciones = [ str(ruta) for ruta in self.solucion ]
-		return "RuteoSolver:{" + \
-		"\n\t\"Q\":" + str(self.Q) + "," + \
-		"\n\t\"N\":" + str(self.N) + "," + \
-		"\n\t\"NB\":" + str(self.NB) + "," + \
-		"\n\t\"R\":" + str(self.R) + "," + \
-		"\n\t\"nodo_salida_buses\":" + str(self.nodo_salida_buses) + "," + \
-		"\n\t\"nodo_autopista\":" + str(self.nodo_autopista) + "," + \
-		"\n\t\"nodo_colegio\":" + str(self.nodo_colegio) + "," + \
-		"\n\t\"grupos_ninos\":" + str(self.grupos_ninos) + "," + \
-		"\n\t\"distancias\":" + str(self.distancias) + "," + \
-		"\n\t\"costos\":" + str(self.costos) + "," + \
-		"\n\t\"tiempos\":" + str(self.tiempos) + "," + \
-		"\n\t\"tiempos_recogida\":" + str(self.tiempos_recogida) + "," + \
-		"\n\t\"solucion\":[\n\t" + "\n\t".join(soluciones) + "]" + \
-		"\n}"
+
 
 	def __crear_grupos(self, datos_ninos, tamanio_grupos):
 		datos_ninos = [ dato_nino[0] for dato_nino in sorted(datos_ninos, key=lambda x: x[2]) ]
@@ -166,6 +148,12 @@ class RuteoSolver:
 			if(distancias[nodo_ruta][nino] < distancia_a_nino_a_recoger):
 				a_recoger = nino
 		return a_recoger
+
+	def toJSON(self):
+		return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
+
+	def __str__(self):
+		return json.dumps(self.toJSON())
 
 if __name__ == '__main__':
 
