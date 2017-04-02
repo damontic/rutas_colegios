@@ -26,25 +26,29 @@ class Ruta():
 		self.ruta = [nodo_inicial]
 		self.L = 0 # Distancia recorrida
 		self.T = 0 # Tiempo de llegada del bus
+		self.D = 0 # Distancia recorrida por el bus
 		self.nodo_actual = nodo_inicial
 		self.tiempo_llegada_autopista = None
 
 	def __str__(self):
 		return json.dumps(self.toJSON())
 
-	def recoger_nino(self, nodo_nino, tiempos, tiempos_recogida):
+	def recoger_nino(self, nodo_nino, tiempos, tiempos_recogida, distancias):
 		self.L = self.L + 1
 		self.T = self.T + tiempos[self.nodo_actual][nodo_nino] + tiempos_recogida[nodo_nino]
+		self.D = self.D + distancias[self.nodo_actual][nodo_nino]
 		self.ruta.append(nodo_nino)
 		self.nodo_actual = nodo_nino
 
-	def terminar_recorrido(self, nodo_autopista, nodo_colegio, tiempos, tiempos_recogida):
+	def terminar_recorrido(self, nodo_autopista, nodo_colegio, tiempos, tiempos_recogida, distancias):
 		self.tiempo_llegada_autopista = self.T
 		self.T = self.T + tiempos[self.nodo_actual][nodo_autopista] + tiempos_recogida[nodo_autopista]
+		self.D = self.D + distancias[self.nodo_actual][nodo_autopista]
 		self.ruta.append(nodo_autopista)
 		self.nodo_actual = nodo_autopista
 
 		self.T = self.T + tiempos[self.nodo_actual][nodo_colegio] + tiempos_recogida[nodo_colegio]
+		self.D = self.D + distancias[self.nodo_actual][nodo_colegio]
 		self.ruta.append(nodo_colegio)
 		self.nodo_actual = nodo_colegio
 
@@ -136,9 +140,9 @@ class RuteoSolver():
 		ruta = Ruta(nodo_salida_bus)
 		while(len(grupo_ninos) > 0):
 			nino_a_recoger = self.__encontrar_siguiente_nino_a_recoger(ruta.nodo_actual, grupo_ninos, distancias)
-			ruta.recoger_nino(nino_a_recoger, tiempos, tiempos_recogida)
+			ruta.recoger_nino(nino_a_recoger, tiempos, tiempos_recogida, distancias)
 			grupo_ninos.remove(nino_a_recoger)
-		ruta.terminar_recorrido(nodo_autopista, nodo_colegio, tiempos, tiempos_recogida)
+		ruta.terminar_recorrido(nodo_autopista, nodo_colegio, tiempos, tiempos_recogida, distancias)
 		return ruta
 
 	def __encontrar_siguiente_nino_a_recoger(self, nodo_ruta, grupo_ninos, distancias):
