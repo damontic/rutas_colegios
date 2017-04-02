@@ -17,6 +17,9 @@ OPCIONES:
 \t-i, --instancia
 \t\tEspecifica el número de la instancia especificada en el archivo excel.
 
+\t-o, --output <archivo_salida>
+\t\tEspecifica el nombre del archivo resultado.
+
 \t-h, --help
 \t\tMuestra esta ayuda y termina.
 	""")
@@ -79,18 +82,20 @@ class Ruta():
 		self.tiempo_llegada_autopista_ventana = self.tiempo_llegada_autopista + diff
 		self.tiempos.reverse()
 		self.tiempos_ventana.reverse()
-		return self.tiempo_llegada_autopista_ventana
+		return self.tiempo_llegada_autopista_ventana - tiempo_intervalo_obligatorio
 
 	def toJSON(self):
 		return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
 
 class RuteoSolver():
-	def __init__(self, archivo_excel, numero_instancia):
+	def __init__(self, archivo_excel, numero_instancia, archivo_salida):
 		f = excel.OpenExcel(archivo_excel)
 		indice_instancia = numero_instancia + 1
 		self.N = int(f.read("C"+str(indice_instancia))) # Cantidad de niños
 		self.Q = int(f.read("N"+str(indice_instancia))) # Capacidad de los buses
 		self.R = int(f.read("K"+str(indice_instancia))) # Tiempo Mínimo de Secuenciamiento en Autopista
+		self.CF = int(f.read("M"+str(indice_instancia))) # Costo Fijo
+		self.CU = int(f.read("O"+str(indice_instancia))) # Costo Unitario
 
 		if(self.N <= 0):
 			print("La cantidad de niños debe ser mayor a 0.", file=sys.stderr)
@@ -130,6 +135,10 @@ class RuteoSolver():
 		
 		self.rutas = self.__encontrar_rutas(self.grupos_ninos, self.nodo_salida_buses, self.nodo_autopista, self.nodo_colegio, self.distancias, self.tiempos, self.tiempos_recogida, self.Q)
 		self.rutas = self.__cuadrar_ventana(self.rutas, self.ventana, self.R)
+
+		self.Z = self.CF * len(self.rutas) + self.CU * sum([ ruta.D for ruta in self.rutas ])
+
+		self.__escribir_resultado(archivo_salida, self.Z, self.rutas)
 
 	def __crear_grupos(self, datos_ninos, tamanio_grupos):
 		datos_ninos = [ dato_nino[0] for dato_nino in sorted(datos_ninos, key=lambda x: x[2]) ]
@@ -192,6 +201,10 @@ class RuteoSolver():
 		for ruta in rutas[1:]:
 			tiempo_entrada_autopista_siguiente_ruta = ruta.calcular_tiempos_ventana_otras_rutas(tiempo_entrada_autopista_siguiente_ruta, tiempo_intervalo_obligatorio)
 		return rutas
+	def __escribir_resultado(self, archivo, Z, rutas):
+		f = open(archivo, "w")
+		f.write("Z: " + str(Z))
+		f.close()
 
 	def toJSON(self):
 		return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
@@ -203,7 +216,7 @@ if __name__ == '__main__':
 
 	# Procesa todos los argumentos del programa
 	try:
-		opts, args = getopt.getopt(sys.argv[1:], "hi:e:", ["help","--instancia=","--excel="])
+		opts, args = getopt.getopt(sys.argv[1:], "hi:e:o:", ["help","--instancia=","--excel=","--output="])
 	except getopt.GetoptError as err:
 		# dibuja ayuda y sale:
 		print(str(err), file=sys.stderr)  # dibuja qué opción es inválida
@@ -213,12 +226,15 @@ if __name__ == '__main__':
 	# Define las variables necesarias
 	archivo_excel = None
 	instancia = None
+	archivo_resultado = None
 	for option, value in opts:
 		if option in ("-h", "--help"):
 			uso()
 			sys.exit(1)
 		elif option in ("-e", "--excel-file"):
 			archivo_excel = value
+		elif option in ("-o", "--output"):
+			archivo_resultado = value
 		elif option in ("-i", "--instancia"):
 			try:
 				instancia = int(value)
@@ -228,9 +244,8 @@ if __name__ == '__main__':
 		else:
 			assert False, "unhandled option"
 
-	if(archivo_excel == None or instancia == None):
+	if(archivo_excel == None or instancia == None or archivo_resultado == None):
 		uso()
 		sys.exit(1)
 
-	ruteoSolver = RuteoSolver(archivo_excel, instancia)
-	print(ruteoSolver)
+	RuteoSolver(archivo_excel, instancia, archivo_resultado)
