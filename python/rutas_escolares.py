@@ -4,6 +4,7 @@ import sys
 import excel
 import json
 import os
+import time
 
 def uso():
 	print("""
@@ -134,12 +135,13 @@ class RuteoSolver():
 
 		self.ventana = (150, 210)
 		
+		tiempo_inicio = time.time()
 		self.rutas = self.__encontrar_rutas(self.grupos_ninos, self.nodo_salida_buses, self.nodo_autopista, self.nodo_colegio, self.distancias, self.tiempos, self.tiempos_recogida, self.Q)
 		self.rutas = self.__cuadrar_ventana(self.rutas, self.ventana, self.R)
-
 		self.Z = self.CF * len(self.rutas) + self.CU * sum([ ruta.D for ruta in self.rutas ])
+		tiempo_total = time.time() - tiempo_inicio
 
-		self.__escribir_resultado(archivo_salida, self.Z, self.rutas)
+		self.__escribir_resultado(archivo_salida, self.Z, self.rutas, tiempo_total)
 
 	def __crear_grupos(self, datos_ninos, tamanio_grupos):
 		datos_ninos = [ dato_nino[0] for dato_nino in sorted(datos_ninos, key=lambda x: x[2]) ]
@@ -202,7 +204,7 @@ class RuteoSolver():
 		for ruta in rutas[1:]:
 			tiempo_entrada_autopista_siguiente_ruta = ruta.calcular_tiempos_ventana_otras_rutas(tiempo_entrada_autopista_siguiente_ruta, tiempo_intervalo_obligatorio)
 		return rutas
-	def __escribir_resultado(self, archivo, Z, rutas):
+	def __escribir_resultado(self, archivo, Z, rutas, tiempo_ejecuion):
 		f = open(archivo, "w")
 		f.write("Z: " + str(Z) + os.linesep)
 		f.write("Cantidad Rutas: " + str(len(rutas))  + os.linesep)
@@ -215,6 +217,7 @@ class RuteoSolver():
 			f.write("Tiempos: " + str(ruta.tiempos_ventana) + os.linesep)
 			f.write("Tiempo Legada Autopista: " + str(ruta.tiempo_llegada_autopista_ventana) + os.linesep)
 			f.write("========================================="  + os.linesep)
+		f.write("Tiempo Ejecución: " + str(tiempo_ejecuion)  + " segundos" + os.linesep)
 		f.close()
 
 	def toJSON(self):
