@@ -27,9 +27,10 @@ class Ruta():
 		self.L = 0 # Distancia recorrida
 		self.T = 0 # Tiempo de llegada del bus
 		self.D = 0 # Distancia recorrida por el bus
-		self.R = capacidad_bus # Capacidad del bus
+		self.Q = capacidad_bus # Capacidad del bus
 		self.nodo_actual = nodo_inicial
 		self.tiempo_llegada_autopista = None
+		self.tiempo_llegada_autopista_ventana = None
 		self.tiempos = [0]
 		self.tiempos_ventana = []
 
@@ -37,7 +38,7 @@ class Ruta():
 		return json.dumps(self.toJSON())
 
 	def recoger_nino(self, nodo_nino, tiempos, tiempos_recogida, distancias):
-		if(self.R <= self.L):
+		if(self.Q <= self.L):
 			raise ValueError('A BUS with capacity', self.R, 'is full with', self.L, 'kids on board.')
 		self.L = self.L + 1
 		self.T = self.T + tiempos[self.nodo_actual][nodo_nino] + tiempos_recogida[nodo_nino]
@@ -47,7 +48,7 @@ class Ruta():
 		self.nodo_actual = nodo_nino
 
 	def terminar_recorrido(self, nodo_autopista, nodo_colegio, tiempos, tiempos_recogida, distancias):
-		self.tiempo_llegada_autopista = self.T
+		self.tiempo_llegada_autopista = self.T + tiempos[self.nodo_actual][nodo_autopista]
 		self.T = self.T + tiempos[self.nodo_actual][nodo_autopista] + tiempos_recogida[nodo_autopista]
 		self.D = self.D + distancias[self.nodo_actual][nodo_autopista]
 		self.tiempos.append(self.T)
@@ -60,12 +61,25 @@ class Ruta():
 		self.ruta.append(nodo_colegio)
 		self.nodo_actual = nodo_colegio
 
-	def calcular_tiempos_ventana(self, tiempo_clave):
+	def calcular_tiempos_ventana_primera_ruta(self, tiempo_final):
 		self.tiempos.reverse()
+		diff = tiempo_final - self.tiempos[0]
 		for tiempo in self.tiempos:
-			self.tiempos_ventana.append(tiempo_clave - tiempo)
+			self.tiempos_ventana.append(tiempo + diff)
+		self.tiempo_llegada_autopista_ventana = self.tiempo_llegada_autopista + diff
 		self.tiempos.reverse()
-		return self.tiempos_ventana[0]
+		self.tiempos_ventana.reverse()
+		return self.tiempo_llegada_autopista_ventana
+
+	def calcular_tiempos_ventana_otras_rutas(self, tiempo_entrada_autopista_siguiente_ruta, tiempo_intervalo_obligatorio):
+		self.tiempos.reverse()
+		diff = tiempo_entrada_autopista_siguiente_ruta - self.tiempo_llegada_autopista
+		for tiempo in self.tiempos:
+			self.tiempos_ventana.append(tiempo + diff)
+		self.tiempo_llegada_autopista_ventana = self.tiempo_llegada_autopista + diff
+		self.tiempos.reverse()
+		self.tiempos_ventana.reverse()
+		return self.tiempo_llegada_autopista_ventana
 
 	def toJSON(self):
 		return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
@@ -76,7 +90,7 @@ class RuteoSolver():
 		indice_instancia = numero_instancia + 1
 		self.N = int(f.read("C"+str(indice_instancia))) # Cantidad de niños
 		self.Q = int(f.read("N"+str(indice_instancia))) # Capacidad de los buses
-		self.R = int(f.read("K"+str(indice_instancia))) # Capacidad de los buses
+		self.R = int(f.read("K"+str(indice_instancia))) # Tiempo Mínimo de Secuenciamiento en Autopista
 
 		if(self.N <= 0):
 			print("La cantidad de niños debe ser mayor a 0.", file=sys.stderr)
@@ -114,8 +128,8 @@ class RuteoSolver():
 
 		self.ventana = (150, 210)
 		
-		self.rutas = self.__encontrar_rutas(self.grupos_ninos, self.nodo_salida_buses, self.nodo_autopista, self.nodo_colegio, self.distancias, self.tiempos, self.tiempos_recogida, self.R)
-		self.rutas = self.__cuadrar_ventana(self.rutas, self.ventana)
+		self.rutas = self.__encontrar_rutas(self.grupos_ninos, self.nodo_salida_buses, self.nodo_autopista, self.nodo_colegio, self.distancias, self.tiempos, self.tiempos_recogida, self.Q)
+		self.rutas = self.__cuadrar_ventana(self.rutas, self.ventana, self.R)
 
 	def __crear_grupos(self, datos_ninos, tamanio_grupos):
 		datos_ninos = [ dato_nino[0] for dato_nino in sorted(datos_ninos, key=lambda x: x[2]) ]
@@ -169,13 +183,14 @@ class RuteoSolver():
 		for nino in grupo_ninos[1:]:
 			if(distancias[nodo_ruta][nino] < distancia_a_nino_a_recoger):
 				a_recoger = nino
+				distancia_a_nino_a_recoger = distancias[nodo_ruta][nino]
 		return a_recoger
 
-	def __cuadrar_ventana(self, rutas, ventana):
+	def __cuadrar_ventana(self, rutas, ventana, tiempo_intervalo_obligatorio):
 		rutas = sorted(rutas, key=lambda x: x.T, reverse=True)
-		tiempo_clave = ventana[1]
-		for ruta in rutas:
-			tiempo_clave = ruta.calcular_tiempo_salida(tiempo_clave)
+		tiempo_entrada_autopista_siguiente_ruta = rutas[0].calcular_tiempos_ventana_primera_ruta(ventana[1]) - tiempo_intervalo_obligatorio
+		for ruta in rutas[1:]:
+			tiempo_entrada_autopista_siguiente_ruta = ruta.calcular_tiempos_ventana_otras_rutas(tiempo_entrada_autopista_siguiente_ruta, tiempo_intervalo_obligatorio)
 		return rutas
 
 	def toJSON(self):
