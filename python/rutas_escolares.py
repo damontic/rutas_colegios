@@ -3,6 +3,7 @@ import math
 import sys
 import excel
 import json
+import os
 
 def uso():
 	print("""
@@ -203,7 +204,17 @@ class RuteoSolver():
 		return rutas
 	def __escribir_resultado(self, archivo, Z, rutas):
 		f = open(archivo, "w")
-		f.write("Z: " + str(Z))
+		f.write("Z: " + str(Z) + os.linesep)
+		f.write("Cantidad Rutas: " + str(len(rutas))  + os.linesep)
+		f.write("========================================="  + os.linesep)
+		i = 0
+		for ruta in rutas:
+			i = i+1
+			f.write("Ruta["+ str(i) + "]:" + os.linesep)
+			f.write("Nodos Visitados: " + str(ruta.ruta) + os.linesep)
+			f.write("Tiempos: " + str(ruta.tiempos_ventana) + os.linesep)
+			f.write("Tiempo Legada Autopista: " + str(ruta.tiempo_llegada_autopista_ventana) + os.linesep)
+			f.write("========================================="  + os.linesep)
 		f.close()
 
 	def toJSON(self):
