@@ -30,6 +30,8 @@ class Ruta():
 		self.R = capacidad_bus # Capacidad del bus
 		self.nodo_actual = nodo_inicial
 		self.tiempo_llegada_autopista = None
+		self.tiempos = [0]
+		self.tiempos_ventana = []
 
 	def __str__(self):
 		return json.dumps(self.toJSON())
@@ -39,6 +41,7 @@ class Ruta():
 			raise ValueError('A BUS with capacity', self.R, 'is full with', self.L, 'kids on board.')
 		self.L = self.L + 1
 		self.T = self.T + tiempos[self.nodo_actual][nodo_nino] + tiempos_recogida[nodo_nino]
+		self.tiempos.append(self.T)
 		self.D = self.D + distancias[self.nodo_actual][nodo_nino]
 		self.ruta.append(nodo_nino)
 		self.nodo_actual = nodo_nino
@@ -47,13 +50,22 @@ class Ruta():
 		self.tiempo_llegada_autopista = self.T
 		self.T = self.T + tiempos[self.nodo_actual][nodo_autopista] + tiempos_recogida[nodo_autopista]
 		self.D = self.D + distancias[self.nodo_actual][nodo_autopista]
+		self.tiempos.append(self.T)
 		self.ruta.append(nodo_autopista)
 		self.nodo_actual = nodo_autopista
 
 		self.T = self.T + tiempos[self.nodo_actual][nodo_colegio] + tiempos_recogida[nodo_colegio]
 		self.D = self.D + distancias[self.nodo_actual][nodo_colegio]
+		self.tiempos.append(self.T)
 		self.ruta.append(nodo_colegio)
 		self.nodo_actual = nodo_colegio
+
+	def calcular_tiempos_ventana(self, tiempo_clave):
+		self.tiempos.reverse()
+		for tiempo in self.tiempos:
+			self.tiempos_ventana.append(tiempo_clave - tiempo)
+		self.tiempos.reverse()
+		return self.tiempos_ventana[0]
 
 	def toJSON(self):
 		return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
@@ -102,9 +114,8 @@ class RuteoSolver():
 
 		self.ventana = (150, 210)
 		
-		self.solucion = self.__solve(self.grupos_ninos, self.nodo_salida_buses, self.nodo_autopista, self.nodo_colegio, self.distancias, self.tiempos, self.tiempos_recogida, self.R)
-
-
+		self.rutas = self.__encontrar_rutas(self.grupos_ninos, self.nodo_salida_buses, self.nodo_autopista, self.nodo_colegio, self.distancias, self.tiempos, self.tiempos_recogida, self.R)
+		self.rutas = self.__cuadrar_ventana(self.rutas, self.ventana)
 
 	def __crear_grupos(self, datos_ninos, tamanio_grupos):
 		datos_ninos = [ dato_nino[0] for dato_nino in sorted(datos_ninos, key=lambda x: x[2]) ]
@@ -132,7 +143,7 @@ class RuteoSolver():
 			matriz.append(fila)
 		return matriz
 
-	def __solve(self, grupos_ninos, nodo_salida_buses, nodo_autopista, nodo_colegio, distancias, tiempos, tiempos_recogida, capacidad_bus):
+	def __encontrar_rutas(self, grupos_ninos, nodo_salida_buses, nodo_autopista, nodo_colegio, distancias, tiempos, tiempos_recogida, capacidad_bus):
 		rutas = []
 		for grupo in grupos_ninos:
 			rutas_nuevas = self.__encontrar_rutas_nuevas(grupo, nodo_salida_buses, nodo_autopista, nodo_colegio, distancias, tiempos, tiempos_recogida, capacidad_bus)
@@ -159,6 +170,13 @@ class RuteoSolver():
 			if(distancias[nodo_ruta][nino] < distancia_a_nino_a_recoger):
 				a_recoger = nino
 		return a_recoger
+
+	def __cuadrar_ventana(self, rutas, ventana):
+		rutas = sorted(rutas, key=lambda x: x.T, reverse=True)
+		tiempo_clave = ventana[1]
+		for ruta in rutas:
+			tiempo_clave = ruta.calcular_tiempo_salida(tiempo_clave)
+		return rutas
 
 	def toJSON(self):
 		return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
