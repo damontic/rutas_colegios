@@ -135,21 +135,22 @@ class RuteoSolver():
 	def __solve(self, grupos_ninos, nodo_salida_buses, nodo_autopista, nodo_colegio, distancias, tiempos, tiempos_recogida, capacidad_bus):
 		rutas = []
 		for grupo in grupos_ninos:
-			ruta = self.__encontrar_ruta(grupo, nodo_salida_buses, nodo_autopista, nodo_colegio, distancias, tiempos, tiempos_recogida, capacidad_bus)
-			rutas.append(ruta)
+			rutas_nuevas = self.__encontrar_rutas_nuevas(grupo, nodo_salida_buses, nodo_autopista, nodo_colegio, distancias, tiempos, tiempos_recogida, capacidad_bus)
+			rutas = rutas + rutas_nuevas
 		return rutas
 
-	def __encontrar_ruta(self, grupo_ninos, nodo_salida_bus, nodo_autopista, nodo_colegio, distancias, tiempos, tiempos_recogida, capacidad_bus):
-		ruta = Ruta(nodo_salida_bus, capacidad_bus)
-		try:
-			while(len(grupo_ninos) > 0):
+	def __encontrar_rutas_nuevas(self, grupo_ninos, nodo_salida_bus, nodo_autopista, nodo_colegio, distancias, tiempos, tiempos_recogida, capacidad_bus):
+		nuevas_rutas = []
+		cantidad_rutas = math.ceil(len(grupo_ninos) / capacidad_bus)
+		for ruta_n in range(cantidad_rutas):
+			ruta = Ruta(nodo_salida_bus, capacidad_bus)
+			while(len(grupo_ninos) > 0 and ruta.L < capacidad_bus):
 				nino_a_recoger = self.__encontrar_siguiente_nino_a_recoger(ruta.nodo_actual, grupo_ninos, distancias)
 				ruta.recoger_nino(nino_a_recoger, tiempos, tiempos_recogida, distancias)
 				grupo_ninos.remove(nino_a_recoger)
-		except ValueError as e:
-			print(e, file=sys.stderr)
-		ruta.terminar_recorrido(nodo_autopista, nodo_colegio, tiempos, tiempos_recogida, distancias)
-		return ruta
+			ruta.terminar_recorrido(nodo_autopista, nodo_colegio, tiempos, tiempos_recogida, distancias)
+			nuevas_rutas.append(ruta)
+		return nuevas_rutas
 
 	def __encontrar_siguiente_nino_a_recoger(self, nodo_ruta, grupo_ninos, distancias):
 		a_recoger = grupo_ninos[0]
