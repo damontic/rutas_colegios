@@ -22,11 +22,12 @@ OPCIONES:
 	""")
 
 class Ruta():
-	def __init__(self, nodo_inicial):
+	def __init__(self, nodo_inicial, capacidad_bus):
 		self.ruta = [nodo_inicial]
 		self.L = 0 # Distancia recorrida
 		self.T = 0 # Tiempo de llegada del bus
 		self.D = 0 # Distancia recorrida por el bus
+		self.R = capacidad_bus # Capacidad del bus
 		self.nodo_actual = nodo_inicial
 		self.tiempo_llegada_autopista = None
 
@@ -34,6 +35,8 @@ class Ruta():
 		return json.dumps(self.toJSON())
 
 	def recoger_nino(self, nodo_nino, tiempos, tiempos_recogida, distancias):
+		if(self.R <= self.L):
+			raise ValueError('A BUS with capacity', self.R, 'is full with', self.L, 'kids on board.')
 		self.L = self.L + 1
 		self.T = self.T + tiempos[self.nodo_actual][nodo_nino] + tiempos_recogida[nodo_nino]
 		self.D = self.D + distancias[self.nodo_actual][nodo_nino]
@@ -64,11 +67,11 @@ class RuteoSolver():
 		self.R = int(f.read("K"+str(indice_instancia))) # Capacidad de los buses
 
 		if(self.N <= 0):
-			print("La cantidad de niños debe ser mayor a 0.")
+			print("La cantidad de niños debe ser mayor a 0.", file=sys.stderr)
 			sys.exit(1)
 
 		if(self.Q <= 0):
-			print("La capacidad de los buses debe ser mayor a 0.")
+			print("La capacidad de los buses debe ser mayor a 0.", file=sys.stderr)
 			sys.exit(1)
 
 		self.NB = math.ceil(self.N / self.Q) # Buses Objetivo
@@ -99,7 +102,7 @@ class RuteoSolver():
 
 		self.ventana = (150, 210)
 		
-		self.solucion = self.__solve(self.grupos_ninos, self.nodo_salida_buses, self.nodo_autopista, self.nodo_colegio, self.distancias, self.tiempos, self.tiempos_recogida)
+		self.solucion = self.__solve(self.grupos_ninos, self.nodo_salida_buses, self.nodo_autopista, self.nodo_colegio, self.distancias, self.tiempos, self.tiempos_recogida, self.R)
 
 
 
@@ -129,19 +132,22 @@ class RuteoSolver():
 			matriz.append(fila)
 		return matriz
 
-	def __solve(self, grupos_ninos, nodo_salida_buses, nodo_autopista, nodo_colegio, distancias, tiempos, tiempos_recogida):
+	def __solve(self, grupos_ninos, nodo_salida_buses, nodo_autopista, nodo_colegio, distancias, tiempos, tiempos_recogida, capacidad_bus):
 		rutas = []
 		for grupo in grupos_ninos:
-			ruta = self.__encontrar_ruta(grupo, nodo_salida_buses, nodo_autopista, nodo_colegio, distancias, tiempos, tiempos_recogida)
+			ruta = self.__encontrar_ruta(grupo, nodo_salida_buses, nodo_autopista, nodo_colegio, distancias, tiempos, tiempos_recogida, capacidad_bus)
 			rutas.append(ruta)
 		return rutas
 
-	def __encontrar_ruta(self, grupo_ninos, nodo_salida_bus, nodo_autopista, nodo_colegio, distancias, tiempos, tiempos_recogida):
-		ruta = Ruta(nodo_salida_bus)
-		while(len(grupo_ninos) > 0):
-			nino_a_recoger = self.__encontrar_siguiente_nino_a_recoger(ruta.nodo_actual, grupo_ninos, distancias)
-			ruta.recoger_nino(nino_a_recoger, tiempos, tiempos_recogida, distancias)
-			grupo_ninos.remove(nino_a_recoger)
+	def __encontrar_ruta(self, grupo_ninos, nodo_salida_bus, nodo_autopista, nodo_colegio, distancias, tiempos, tiempos_recogida, capacidad_bus):
+		ruta = Ruta(nodo_salida_bus, capacidad_bus)
+		try:
+			while(len(grupo_ninos) > 0):
+				nino_a_recoger = self.__encontrar_siguiente_nino_a_recoger(ruta.nodo_actual, grupo_ninos, distancias)
+				ruta.recoger_nino(nino_a_recoger, tiempos, tiempos_recogida, distancias)
+				grupo_ninos.remove(nino_a_recoger)
+		except ValueError as e:
+			print(e, file=sys.stderr)
 		ruta.terminar_recorrido(nodo_autopista, nodo_colegio, tiempos, tiempos_recogida, distancias)
 		return ruta
 
@@ -166,7 +172,7 @@ if __name__ == '__main__':
 		opts, args = getopt.getopt(sys.argv[1:], "hi:e:", ["help","--instancia=","--excel="])
 	except getopt.GetoptError as err:
 		# dibuja ayuda y sale:
-		print(str(err))  # dibuja qué opción es inválida
+		print(str(err), file=sys.stderr)  # dibuja qué opción es inválida
 		uso()
 		sys.exit(2)
 
@@ -183,7 +189,7 @@ if __name__ == '__main__':
 			try:
 				instancia = int(value)
 			except:
-				print("El argumento que sigue a -i debe ser numérico.")
+				print("El argumento que sigue a -i debe ser numérico.", file=sys.stderr)
 				sys.exit(1)
 		else:
 			assert False, "unhandled option"
