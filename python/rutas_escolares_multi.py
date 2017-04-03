@@ -129,6 +129,7 @@ class RuteoSolver():
 		self.grupos_ninos = self.__crear_grupos(datos_ninos, math.ceil( self.N / self.NB ))
 		self.distancias = self.__leer_matriz(archivo_excel, 3, self.N, cantidad_buses, self.cantidad_colegios)
 		self.costos = self.__leer_matriz(archivo_excel, 4, self.N, cantidad_buses, self.cantidad_colegios)
+		self.estudiante_colegio = self.__leer_matriz(archivo_excel, 5, self.N, cantidad_buses, self.cantidad_colegios)
 		self.tiempos = self.__leer_matriz(archivo_excel, 6, self.N, cantidad_buses, self.cantidad_colegios)
 
 		f = excel.OpenExcel(archivo_excel, sheet = 7)
@@ -171,7 +172,10 @@ class RuteoSolver():
 			fila = [ None ]
 			for j in range(2, 2 + cantidad_ninos + cantidad_buses + cantidad_colegios + 2):
 				cell_name = self.__colnum_string(j) + str(i)
-				fila.append( int( f.read(cell_name).split(",")[0] ) )
+				try:
+					fila.append( int( f.read(cell_name).split(",")[0] ) )
+				except:
+					fila.append( int( f.read(cell_name) ) )
 			matriz.append(fila)
 		return matriz
 
