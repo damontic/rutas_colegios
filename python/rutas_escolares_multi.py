@@ -127,19 +127,19 @@ class RuteoSolver():
 		self.nodo_final = int(f.read("A"+str(j)))
 
 		self.grupos_ninos = self.__crear_grupos(datos_ninos, math.ceil( self.N / self.NB ))
-		self.distancias = self.__leer_matriz(archivo_excel, 3, self.N, cantidad_buses)
-		self.costos = self.__leer_matriz(archivo_excel, 4, self.N, cantidad_buses)
-		self.tiempos = self.__leer_matriz(archivo_excel, 6, self.N, cantidad_buses)
+		self.distancias = self.__leer_matriz(archivo_excel, 3, self.N, cantidad_buses, self.cantidad_colegios)
+		self.costos = self.__leer_matriz(archivo_excel, 4, self.N, cantidad_buses, self.cantidad_colegios)
+		self.tiempos = self.__leer_matriz(archivo_excel, 6, self.N, cantidad_buses, self.cantidad_colegios)
 
-		"""
-		f = excel.OpenExcel(archivo_excel, sheet = 6)
+		f = excel.OpenExcel(archivo_excel, sheet = 7)
 		self.tiempos_recogida = [None]
-		for i in range(3, 3 + cantidad_buses + self.N + 2):
+		for i in range(3, 3 + cantidad_buses + self.N + self.cantidad_colegios + 2):
 			tiempo = int(f.read("B"+str(i)))
 			self.tiempos_recogida.append(tiempo)
 
 		self.ventana = (150, 210)
-		
+
+		"""		
 		tiempo_inicio = time.time()
 		self.rutas = self.__encontrar_rutas(self.grupos_ninos, self.nodo_salida_buses, self.nodo_autopista, self.nodo_colegio, self.distancias, self.tiempos, self.tiempos_recogida, self.Q)
 		self.rutas = self.__cuadrar_ventana(self.rutas, self.ventana, self.R)
@@ -164,12 +164,12 @@ class RuteoSolver():
 		return string
 
 
-	def __leer_matriz(self, archivo_excel, numero_hoja, cantidad_ninos, cantidad_buses):
+	def __leer_matriz(self, archivo_excel, numero_hoja, cantidad_ninos, cantidad_buses, cantidad_colegios):
 		f = excel.OpenExcel(archivo_excel, numero_hoja)
-		matriz = [ [ None for i in range(0, cantidad_buses + cantidad_ninos + 2)] ]
-		for i in range(3, 3 + cantidad_ninos + cantidad_buses + 2):
+		matriz = [ [ None for i in range(0, cantidad_buses + cantidad_ninos + cantidad_colegios + 3)] ]
+		for i in range(3, 3 + cantidad_ninos + cantidad_buses + cantidad_colegios + 2):
 			fila = [ None ]
-			for j in range(2, 2 + cantidad_ninos + cantidad_buses + 2):
+			for j in range(2, 2 + cantidad_ninos + cantidad_buses + cantidad_colegios + 2):
 				cell_name = self.__colnum_string(j) + str(i)
 				fila.append( int( f.read(cell_name).split(",")[0] ) )
 			matriz.append(fila)
