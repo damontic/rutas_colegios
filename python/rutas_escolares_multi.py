@@ -120,9 +120,9 @@ class RuteoSolver():
 			datos_ninos.append( ( int(f.read("A"+str(i))), int(f.read("B"+str(i))), int(f.read("C"+str(i))) ) )
 		i = i + 1
 		self.nodo_autopista = int(f.read("A"+str(i)))
-		colegios = []
+		self.colegios = []
 		for j in range (i, i + self.cantidad_colegios):
-			colegios.append(( int(f.read("A"+str(j))), int(f.read("B"+str(j))), int(f.read("C"+str(j))) ))
+			self.colegios.append(( int(f.read("A"+str(j))), int(f.read("B"+str(j))), int(f.read("C"+str(j))) ))
 		j = j + 1
 		self.nodo_final = int(f.read("A"+str(j)))
 
