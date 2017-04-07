@@ -36,7 +36,8 @@ class Ruta():
 		self.nodo_actual = nodo_inicial
 		self.tiempo_llegada_autopista = None
 		self.tiempo_llegada_autopista_ventana = None
-		self.tiempos = [0]
+		self.tiempos_salida = [0]
+		self.tiempos_llegada = [0]
 		self.tiempos_ventana = []
 
 	def __str__(self):
@@ -44,45 +45,67 @@ class Ruta():
 
 	def recoger_nino(self, nodo_nino, tiempos, tiempos_recogida, distancias):
 		if(self.Q <= self.L):
-			raise ValueError('A BUS with capacity', self.R, 'is full with', self.L, 'kids on board.')
+			raise ValueError('Un bus con capacidad', self.R, 'está lleno con', self.L, 'niños a bordo.')
 		self.L = self.L + 1
-		self.T = self.T + tiempos[self.nodo_actual][nodo_nino] + tiempos_recogida[nodo_nino]
-		self.tiempos.append(self.T)
+		self.T = self.T + tiempos[self.nodo_actual][nodo_nino]
+		self.tiempos_llegada.append(self.T)
+		self.T = self.T + tiempos_recogida[nodo_nino]
+		self.tiempos_salida.append(self.T)
 		self.D = self.D + distancias[self.nodo_actual][nodo_nino]
 		self.ruta.append(nodo_nino)
 		self.nodo_actual = nodo_nino
 
 	def terminar_recorrido(self, nodo_autopista, nodo_colegio, tiempos, tiempos_recogida, distancias):
 		self.tiempo_llegada_autopista = self.T + tiempos[self.nodo_actual][nodo_autopista]
-		self.T = self.T + tiempos[self.nodo_actual][nodo_autopista] + tiempos_recogida[nodo_autopista]
+		self.T = self.T + tiempos[self.nodo_actual][nodo_autopista]
+		self.tiempos_llegada.append(self.T)
+		self.T = self.T + tiempos_recogida[nodo_autopista]
+		self.tiempos_salida.append(self.T)
 		self.D = self.D + distancias[self.nodo_actual][nodo_autopista]
-		self.tiempos.append(self.T)
 		self.ruta.append(nodo_autopista)
 		self.nodo_actual = nodo_autopista
 
-		self.T = self.T + tiempos[self.nodo_actual][nodo_colegio] + tiempos_recogida[nodo_colegio]
+		self.T = self.T + tiempos[self.nodo_actual][nodo_colegio]
+		self.tiempos_llegada.append(self.T)
+		self.T = self.T + tiempos_recogida[nodo_colegio]
+		self.tiempos_salida.append(self.T)
 		self.D = self.D + distancias[self.nodo_actual][nodo_colegio]
-		self.tiempos.append(self.T)
 		self.ruta.append(nodo_colegio)
 		self.nodo_actual = nodo_colegio
 
-	def calcular_tiempos_ventana_primera_ruta(self, tiempo_final):
-		self.tiempos.reverse()
-		diff = tiempo_final - self.tiempos[0]
-		for tiempo in self.tiempos:
-			self.tiempos_ventana.append(tiempo + diff)
+	def calcular_tiempos_ventana_primera_ruta(self, ventana):
+		tiempo_min = ventana[0]
+		tiempo_max = ventana[1]
+		self.tiempos_llegada.reverse()
+		diff = tiempo_max - self.tiempos_llegada[0]
+		for tiempo in self.tiempos_llegada:
+			tiempo_ventana = tiempo + diff
+			if(tiempo_ventana < 0):
+				raise ValueError("Tiempo Negativo")
+			self.tiempos_ventana.append(tiempo_ventana)
 		self.tiempo_llegada_autopista_ventana = self.tiempo_llegada_autopista + diff
-		self.tiempos.reverse()
+		self.tiempos_llegada.reverse()
+		if(self.tiempos_ventana[1] < tiempo_min or self.tiempos_ventana[1] > tiempo_max):
+			self.tiempos_ventana.reverse()
+			raise ValueError('La solución no es factible. Revisar la capacidad de los buses.')
 		self.tiempos_ventana.reverse()
 		return self.tiempo_llegada_autopista_ventana
 
-	def calcular_tiempos_ventana_otras_rutas(self, tiempo_entrada_autopista_siguiente_ruta, tiempo_intervalo_obligatorio):
-		self.tiempos.reverse()
+	def calcular_tiempos_ventana_otras_rutas(self, tiempo_entrada_autopista_siguiente_ruta, tiempo_intervalo_obligatorio, ventana):
+		tiempo_min = ventana[0]
+		tiempo_max = ventana[1]
+		self.tiempos_llegada.reverse()
 		diff = tiempo_entrada_autopista_siguiente_ruta - self.tiempo_llegada_autopista
-		for tiempo in self.tiempos:
-			self.tiempos_ventana.append(tiempo + diff)
+		for tiempo in self.tiempos_llegada:
+			tiempo_ventana = tiempo + diff
+			if(tiempo_ventana < 0):
+				raise ValueError("Tiempo Negativo")
+			self.tiempos_ventana.append(tiempo_ventana)
 		self.tiempo_llegada_autopista_ventana = self.tiempo_llegada_autopista + diff
-		self.tiempos.reverse()
+		self.tiempos_llegada.reverse()
+		if(self.tiempos_ventana[1] < tiempo_min or self.tiempos_ventana[1] > tiempo_max):
+			self.tiempos_ventana.reverse()
+			raise ValueError('La solución no es factible. Revisar la capacidad de los buses.')
 		self.tiempos_ventana.reverse()
 		return self.tiempo_llegada_autopista_ventana - tiempo_intervalo_obligatorio
 
@@ -122,7 +145,6 @@ class RuteoSolver():
 		i = i + 1
 		self.nodo_colegio = int(f.read("A"+str(i)))
 
-		self.grupos_ninos = self.__crear_grupos(datos_ninos, math.ceil( self.N / self.NB ))
 		self.distancias = self.__leer_matriz(archivo_excel, 3, self.N, cantidad_buses)
 		self.costos = self.__leer_matriz(archivo_excel, 4, self.N, cantidad_buses)
 		self.tiempos = self.__leer_matriz(archivo_excel, 5, self.N, cantidad_buses)
@@ -135,13 +157,31 @@ class RuteoSolver():
 
 		self.ventana = (150, 210)
 		
+		resultado = False
+		iteraciones = 0
 		tiempo_inicio = time.time()
-		self.rutas = self.__encontrar_rutas(self.grupos_ninos, self.nodo_salida_buses, self.nodo_autopista, self.nodo_colegio, self.distancias, self.tiempos, self.tiempos_recogida, self.Q)
-		self.rutas = self.__cuadrar_ventana(self.rutas, self.ventana, self.R)
+		while(not resultado):
+			iteraciones = iteraciones + 1
+			print("Iteración", iteraciones)
+			resultado = self.__iteracion(datos_ninos)
 		self.Z = self.CF * len(self.rutas) + self.CU * sum([ ruta.D for ruta in self.rutas ])
 		tiempo_total = time.time() - tiempo_inicio
 
 		self.__escribir_resultado(archivo_salida, self.Z, self.rutas, tiempo_total)
+
+	def __iteracion(self, datos_ninos):
+		try:
+			self.grupos_ninos = self.__crear_grupos(datos_ninos, math.ceil( self.N / self.NB ))
+			self.rutas = self.__encontrar_rutas(self.grupos_ninos, self.nodo_salida_buses, self.nodo_autopista, self.nodo_colegio, self.distancias, self.tiempos, self.tiempos_recogida, self.Q)
+			self.rutas = self.__cuadrar_ventana(self.rutas, self.ventana, self.R)
+		except ValueError as e:
+			if(e.args[0] != "Tiempo Negativo"):
+				raise e
+			self.NB = self.NB  + 1
+			if(self.NB > self.N):
+				raise ValueError("No pueden haber más rutas que niños")
+			return False
+		return True
 
 	def __crear_grupos(self, datos_ninos, tamanio_grupos):
 		datos_ninos = [ dato_nino[0] for dato_nino in sorted(datos_ninos, key=lambda x: x[2]) ]
@@ -200,10 +240,11 @@ class RuteoSolver():
 
 	def __cuadrar_ventana(self, rutas, ventana, tiempo_intervalo_obligatorio):
 		rutas = sorted(rutas, key=lambda x: x.T, reverse=True)
-		tiempo_entrada_autopista_siguiente_ruta = rutas[0].calcular_tiempos_ventana_primera_ruta(ventana[1]) - tiempo_intervalo_obligatorio
+		tiempo_entrada_autopista_siguiente_ruta = rutas[0].calcular_tiempos_ventana_primera_ruta(ventana) - tiempo_intervalo_obligatorio
 		for ruta in rutas[1:]:
-			tiempo_entrada_autopista_siguiente_ruta = ruta.calcular_tiempos_ventana_otras_rutas(tiempo_entrada_autopista_siguiente_ruta, tiempo_intervalo_obligatorio)
+			tiempo_entrada_autopista_siguiente_ruta = ruta.calcular_tiempos_ventana_otras_rutas(tiempo_entrada_autopista_siguiente_ruta, tiempo_intervalo_obligatorio, ventana)
 		return rutas
+
 	def __escribir_resultado(self, archivo, Z, rutas, tiempo_ejecuion):
 		f = open(archivo, "w")
 		f.write("Z: " + str(Z) + os.linesep)
@@ -214,8 +255,8 @@ class RuteoSolver():
 			i = i+1
 			f.write("Ruta["+ str(i) + "]:" + os.linesep)
 			f.write("Nodos Visitados: " + str(ruta.ruta) + os.linesep)
-			f.write("Tiempos: " + str(ruta.tiempos_ventana) + os.linesep)
-			f.write("Tiempo Legada Autopista: " + str(ruta.tiempo_llegada_autopista_ventana) + os.linesep)
+			f.write("Tiempos Llegada: " + str(ruta.tiempos_ventana) + os.linesep)
+			f.write("Tiempo Llegada Autopista: " + str(ruta.tiempo_llegada_autopista_ventana) + os.linesep)
 			f.write("========================================="  + os.linesep)
 		f.write("Tiempo Ejecución: " + str(tiempo_ejecuion)  + " segundos" + os.linesep)
 		f.close()
