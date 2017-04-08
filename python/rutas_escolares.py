@@ -85,7 +85,7 @@ class Ruta():
 			self.tiempos_ventana.append(tiempo_ventana)
 		self.tiempo_llegada_autopista_ventana = self.tiempo_llegada_autopista + diff
 		self.tiempos_llegada.reverse()
-		if(self.tiempos_ventana[1] < tiempo_min or self.tiempos_ventana[1] > tiempo_max):
+		if(self.tiempos_ventana[0] < tiempo_min or self.tiempos_ventana[0] > tiempo_max):
 			self.tiempos_ventana.reverse()
 			raise ValueError('La solución no es factible. Revisar la capacidad de los buses.')
 		self.tiempos_ventana.reverse()
@@ -103,7 +103,7 @@ class Ruta():
 			self.tiempos_ventana.append(tiempo_ventana)
 		self.tiempo_llegada_autopista_ventana = self.tiempo_llegada_autopista + diff
 		self.tiempos_llegada.reverse()
-		if(self.tiempos_ventana[1] < tiempo_min or self.tiempos_ventana[1] > tiempo_max):
+		if(self.tiempos_ventana[0] < tiempo_min or self.tiempos_ventana[0] > tiempo_max):
 			self.tiempos_ventana.reverse()
 			raise ValueError('La solución no es factible. Revisar la capacidad de los buses.')
 		self.tiempos_ventana.reverse()
