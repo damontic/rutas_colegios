@@ -143,6 +143,7 @@ class RuteoSolver():
 			datos_ninos.append( ( int(f.read("A"+str(i))), int(f.read("B"+str(i))), int(f.read("C"+str(i))) ) )
 		i = i + 1
 		self.nodo_autopista = int(f.read("A"+str(i)))
+		i = i + 1
 		self.colegios = []
 		for j in range (i, i + self.cantidad_colegios):
 			self.colegios.append(( int(f.read("A"+str(j))), int(f.read("B"+str(j))), int(f.read("C"+str(j))) ))
@@ -173,9 +174,9 @@ class RuteoSolver():
 			resultado = self.__iteracion(datos_ninos)
 		self.Z = self.CF * len(self.rutas) + self.CU * sum([ ruta.D for ruta in self.rutas ])
 		tiempo_total = time.time() - tiempo_inicio
-		"""
 
 		self.__escribir_resultado(archivo_salida, self.Z, self.rutas, tiempo_total)
+		"""
 
 	def __iteracion(self, datos_ninos):
 		try:
@@ -314,4 +315,5 @@ if __name__ == '__main__':
 		uso()
 		sys.exit(1)
 
-	RuteoSolver(archivo_excel, instancia, archivo_resultado)
+	r = RuteoSolver(archivo_excel, instancia, archivo_resultado)
+	print(r)
