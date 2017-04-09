@@ -206,7 +206,6 @@ class RuteoSolver():
 
 		self.ventana = (150, 210)
 
-		"""		
 		resultado = False
 		iteraciones = 0
 		tiempo_inicio = time.time()
@@ -214,12 +213,6 @@ class RuteoSolver():
 			iteraciones = iteraciones + 1
 			print("Iteración", iteraciones)
 			resultado = self.__iteracion(datos_ninos)
-		self.Z = self.CF * len(self.rutas) + self.CU * sum([ ruta.D for ruta in self.rutas ])
-		tiempo_total = time.time() - tiempo_inicio
-		"""
-
-		tiempo_inicio = time.time()
-		resultado = self.__iteracion(datos_ninos)
 		self.Z = self.CF * len(self.rutas) + self.CU * sum([ ruta.D for ruta in self.rutas ])
 		tiempo_total = time.time() - tiempo_inicio
 
@@ -362,5 +355,4 @@ if __name__ == '__main__':
 		uso()
 		sys.exit(1)
 
-	r = RuteoSolver(archivo_excel, instancia, archivo_resultado)
-	print(r)
+	RuteoSolver(archivo_excel, instancia, archivo_resultado)
