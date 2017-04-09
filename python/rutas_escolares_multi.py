@@ -26,6 +26,13 @@ OPCIONES:
 \t\tMuestra esta ayuda y termina.
 	""")
 
+class Nino():
+	def __init__(self, id, x, y, colegio):
+		self.id = id
+		self.x = x
+		self.y = y
+		self.colegio = colegio
+
 class Ruta():
 	def __init__(self, nodo_inicial, capacidad_bus):
 		self.ruta = [nodo_inicial]
@@ -140,7 +147,7 @@ class RuteoSolver():
 		self.nodo_salida_buses = int(f.read("A6"))
 		datos_ninos = []
 		for i in range(indice_inicio_ninos_hoja_2, indice_inicio_ninos_hoja_2 + self.N):
-			datos_ninos.append( ( int(f.read("A"+str(i))), int(f.read("B"+str(i))), int(f.read("C"+str(i))) ) )
+			datos_ninos.append( Nino( int(f.read("A"+str(i))), int(f.read("B"+str(i))), int(f.read("C"+str(i))), int(f.read("E"+str(i))) ) )
 		i = i + 1
 		self.nodo_autopista = int(f.read("A"+str(i)))
 		i = i + 1
@@ -153,7 +160,7 @@ class RuteoSolver():
 		self.grupos_ninos = self.__crear_grupos(datos_ninos, math.ceil( self.N / self.NB ))
 		self.distancias = self.__leer_matriz(archivo_excel, 3, self.N, cantidad_buses, self.cantidad_colegios)
 		self.costos = self.__leer_matriz(archivo_excel, 4, self.N, cantidad_buses, self.cantidad_colegios)
-		self.estudiante_colegio = self.__leer_matriz(archivo_excel, 5, self.N, cantidad_buses, self.cantidad_colegios)
+		# self.estudiante_colegio = self.__leer_matriz(archivo_excel, 5, self.N, cantidad_buses, self.cantidad_colegios)
 		self.tiempos = self.__leer_matriz(archivo_excel, 6, self.N, cantidad_buses, self.cantidad_colegios)
 
 		f = excel.OpenExcel(archivo_excel, sheet = 7)
@@ -193,7 +200,7 @@ class RuteoSolver():
 		return True
 
 	def __crear_grupos(self, datos_ninos, tamanio_grupos):
-		datos_ninos = [ dato_nino[0] for dato_nino in sorted(datos_ninos, key=lambda x: x[2]) ]
+		datos_ninos = [ dato_nino for dato_nino in sorted(datos_ninos, key=lambda x: x.y) ]
 		return [ datos_ninos[i:i + tamanio_grupos] for i in range(0, len(datos_ninos), tamanio_grupos) ]
 
 	def __colnum_string(self, n):
