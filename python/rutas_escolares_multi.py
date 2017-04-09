@@ -96,15 +96,24 @@ class Ruta():
 		self.nodo_actual = nodo_autopista
 
 		# solamente pasar por los colegios donde hay niños de la ruta
-		colegios_a_visitar = [ colegio for colegio in sorted(colegios, key=lambda colegio: colegio.x) if colegio in self.colegios_a_visitar ]
-		for colegio in colegios_a_visitar:
-			self.T = self.T + tiempos[self.nodo_actual][colegio.id]
-			self.tiempos_llegada.append(self.T)
-			self.T = self.T + tiempos_recogida[colegio.id]
-			self.tiempos_salida.append(self.T)
-			self.D = self.D + distancias[self.nodo_actual][colegio.id]
-			self.ruta.append(colegio.id)
-			self.nodo_actual = colegio.id
+		colegios_a_visitar = [ colegio for colegio in colegios if colegio in self.colegios_a_visitar ]
+
+		while len(colegios_a_visitar) > 0:
+			colegio_a_visitar = colegios_a_visitar[0]
+			for i in range(1,len(colegios_a_visitar)):
+				if (distancias[self.nodo_actual][colegios_a_visitar[i].id] < distancias[self.nodo_actual][colegio_a_visitar.id]):
+					colegio_a_visitar = colegios_a_visitar[i]
+			self.__visitar_colegio(colegio_a_visitar, tiempos, tiempos_recogida, distancias)
+			colegios_a_visitar.remove(colegio_a_visitar)
+
+	def __visitar_colegio(self, colegio, tiempos, tiempos_recogida, distancias):
+		self.T = self.T + tiempos[self.nodo_actual][colegio.id]
+		self.tiempos_llegada.append(self.T)
+		self.T = self.T + tiempos_recogida[colegio.id]
+		self.tiempos_salida.append(self.T)
+		self.D = self.D + distancias[self.nodo_actual][colegio.id]
+		self.ruta.append(colegio.id)
+		self.nodo_actual = colegio.id
 
 	def calcular_tiempos_ventana_primera_ruta(self, ventana):
 		tiempo_min = ventana[0]
