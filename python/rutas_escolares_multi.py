@@ -33,6 +33,24 @@ class Nino():
 		self.y = y
 		self.colegio = colegio
 
+	def toJSON(self):
+		return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
+
+	def __str__(self):
+		return json.dumps(self.toJSON())
+
+class Colegio():
+	def __init__(self, id, x, y):
+		self.id = id
+		self.x = x
+		self.y = y
+
+	def toJSON(self):
+		return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
+
+	def __str__(self):
+		return json.dumps(self.toJSON())
+
 class Ruta():
 	def __init__(self, nodo_inicial, capacidad_bus):
 		self.ruta = [nodo_inicial]
@@ -50,19 +68,19 @@ class Ruta():
 	def __str__(self):
 		return json.dumps(self.toJSON())
 
-	def recoger_nino(self, nodo_nino, tiempos, tiempos_recogida, distancias):
+	def recoger_nino(self, nino, tiempos, tiempos_recogida, distancias):
 		if(self.Q <= self.L):
 			raise ValueError('Un bus con capacidad', self.R, 'está lleno con', self.L, 'niños a bordo.')
 		self.L = self.L + 1
-		self.T = self.T + tiempos[self.nodo_actual][nodo_nino]
+		self.T = self.T + tiempos[self.nodo_actual][nino.id]
 		self.tiempos_llegada.append(self.T)
-		self.T = self.T + tiempos_recogida[nodo_nino]
+		self.T = self.T + tiempos_recogida[nino.id]
 		self.tiempos_salida.append(self.T)
-		self.D = self.D + distancias[self.nodo_actual][nodo_nino]
-		self.ruta.append(nodo_nino)
-		self.nodo_actual = nodo_nino
+		self.D = self.D + distancias[self.nodo_actual][nino.id]
+		self.ruta.append(nino.id)
+		self.nodo_actual = nino.id
 
-	def terminar_recorrido(self, nodo_autopista, nodo_colegio, tiempos, tiempos_recogida, distancias):
+	def terminar_recorrido(self, nodo_autopista, nodos_colegios, tiempos, tiempos_recogida, distancias):
 		self.tiempo_llegada_autopista = self.T + tiempos[self.nodo_actual][nodo_autopista]
 		self.T = self.T + tiempos[self.nodo_actual][nodo_autopista]
 		self.tiempos_llegada.append(self.T)
@@ -72,13 +90,14 @@ class Ruta():
 		self.ruta.append(nodo_autopista)
 		self.nodo_actual = nodo_autopista
 
-		self.T = self.T + tiempos[self.nodo_actual][nodo_colegio]
-		self.tiempos_llegada.append(self.T)
-		self.T = self.T + tiempos_recogida[nodo_colegio]
-		self.tiempos_salida.append(self.T)
-		self.D = self.D + distancias[self.nodo_actual][nodo_colegio]
-		self.ruta.append(nodo_colegio)
-		self.nodo_actual = nodo_colegio
+		for colegio in nodos_colegios:
+			self.T = self.T + tiempos[self.nodo_actual][colegio.id]
+			self.tiempos_llegada.append(self.T)
+			self.T = self.T + tiempos_recogida[colegio.id]
+			self.tiempos_salida.append(self.T)
+			self.D = self.D + distancias[self.nodo_actual][colegio.id]
+			self.ruta.append(colegio.id)
+			self.nodo_actual = colegio.id
 
 	def calcular_tiempos_ventana_primera_ruta(self, ventana):
 		tiempo_min = ventana[0]
@@ -151,9 +170,9 @@ class RuteoSolver():
 		i = i + 1
 		self.nodo_autopista = int(f.read("A"+str(i)))
 		i = i + 1
-		self.colegios = []
+		self.nodos_colegios = []
 		for j in range (i, i + self.cantidad_colegios):
-			self.colegios.append(( int(f.read("A"+str(j))), int(f.read("B"+str(j))), int(f.read("C"+str(j))) ))
+			self.nodos_colegios.append(Colegio( int(f.read("A"+str(j))), int(f.read("B"+str(j))), int(f.read("C"+str(j))) ))
 		j = j + 1
 		self.nodo_final = int(f.read("A"+str(j)))
 
@@ -181,14 +200,19 @@ class RuteoSolver():
 			resultado = self.__iteracion(datos_ninos)
 		self.Z = self.CF * len(self.rutas) + self.CU * sum([ ruta.D for ruta in self.rutas ])
 		tiempo_total = time.time() - tiempo_inicio
+		"""
+
+		tiempo_inicio = time.time()
+		resultado = self.__iteracion(datos_ninos)
+		self.Z = self.CF * len(self.rutas) + self.CU * sum([ ruta.D for ruta in self.rutas ])
+		tiempo_total = time.time() - tiempo_inicio
 
 		self.__escribir_resultado(archivo_salida, self.Z, self.rutas, tiempo_total)
-		"""
 
 	def __iteracion(self, datos_ninos):
 		try:
 			self.grupos_ninos = self.__crear_grupos(datos_ninos, math.ceil( self.N / self.NB ))
-			self.rutas = self.__encontrar_rutas(self.grupos_ninos, self.nodo_salida_buses, self.nodo_autopista, self.nodo_colegio, self.distancias, self.tiempos, self.tiempos_recogida, self.Q)
+			self.rutas = self.__encontrar_rutas(self.grupos_ninos, self.nodo_salida_buses, self.nodo_autopista, self.nodos_colegios, self.distancias, self.tiempos, self.tiempos_recogida, self.Q)
 			self.rutas = self.__cuadrar_ventana(self.rutas, self.ventana, self.R)
 		except ValueError as e:
 			if(e.args[0] != "Tiempo Negativo"):
@@ -228,14 +252,14 @@ class RuteoSolver():
 			matriz.append(fila)
 		return matriz
 
-	def __encontrar_rutas(self, grupos_ninos, nodo_salida_buses, nodo_autopista, nodo_colegio, distancias, tiempos, tiempos_recogida, capacidad_bus):
+	def __encontrar_rutas(self, grupos_ninos, nodo_salida_buses, nodo_autopista, nodo_colegios, distancias, tiempos, tiempos_recogida, capacidad_bus):
 		rutas = []
 		for grupo in grupos_ninos:
-			rutas_nuevas = self.__encontrar_rutas_nuevas(grupo, nodo_salida_buses, nodo_autopista, nodo_colegio, distancias, tiempos, tiempos_recogida, capacidad_bus)
+			rutas_nuevas = self.__encontrar_rutas_nuevas(grupo, nodo_salida_buses, nodo_autopista, nodo_colegios, distancias, tiempos, tiempos_recogida, capacidad_bus)
 			rutas = rutas + rutas_nuevas
 		return rutas
 
-	def __encontrar_rutas_nuevas(self, grupo_ninos, nodo_salida_bus, nodo_autopista, nodo_colegio, distancias, tiempos, tiempos_recogida, capacidad_bus):
+	def __encontrar_rutas_nuevas(self, grupo_ninos, nodo_salida_bus, nodo_autopista, nodo_colegios, distancias, tiempos, tiempos_recogida, capacidad_bus):
 		nuevas_rutas = []
 		cantidad_rutas = math.ceil(len(grupo_ninos) / capacidad_bus)
 		for ruta_n in range(cantidad_rutas):
@@ -244,17 +268,17 @@ class RuteoSolver():
 				nino_a_recoger = self.__encontrar_siguiente_nino_a_recoger(ruta.nodo_actual, grupo_ninos, distancias)
 				ruta.recoger_nino(nino_a_recoger, tiempos, tiempos_recogida, distancias)
 				grupo_ninos.remove(nino_a_recoger)
-			ruta.terminar_recorrido(nodo_autopista, nodo_colegio, tiempos, tiempos_recogida, distancias)
+			ruta.terminar_recorrido(nodo_autopista, nodo_colegios, tiempos, tiempos_recogida, distancias)
 			nuevas_rutas.append(ruta)
 		return nuevas_rutas
 
 	def __encontrar_siguiente_nino_a_recoger(self, nodo_ruta, grupo_ninos, distancias):
 		a_recoger = grupo_ninos[0]
-		distancia_a_nino_a_recoger = distancias[nodo_ruta][a_recoger]
+		distancia_a_nino_a_recoger = distancias[nodo_ruta][a_recoger.id]
 		for nino in grupo_ninos[1:]:
-			if(distancias[nodo_ruta][nino] < distancia_a_nino_a_recoger):
+			if(distancias[nodo_ruta][nino.id] < distancia_a_nino_a_recoger):
 				a_recoger = nino
-				distancia_a_nino_a_recoger = distancias[nodo_ruta][nino]
+				distancia_a_nino_a_recoger = distancias[nodo_ruta][nino.id]
 		return a_recoger
 
 	def __cuadrar_ventana(self, rutas, ventana, tiempo_intervalo_obligatorio):
